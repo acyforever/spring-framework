@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.BeanPostProcessor;
@@ -57,7 +58,12 @@ final class PostProcessorRegistrationDelegate {
 
 		// Invoke BeanDefinitionRegistryPostProcessors first, if any.
 		Set<String> processedBeans = new HashSet<>();
-		//这里已经包含的BeanFactoryPostProcessor
+		/**
+		 * 这里已经包含的BeanFactoryPostProcessor
+		 * @see org.springframework.context.support.ApplicationContextAwareProcessor.pos
+		 * @see org.springframework.context.support.ApplicationListenerDetector
+		 */
+
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
@@ -206,6 +212,10 @@ final class PostProcessorRegistrationDelegate {
 			if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
 				BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
 				priorityOrderedPostProcessors.add(pp);
+				/**
+				 * 找到MergedBeanDefinitionPostProcessor并注册进去这里注册的
+				 * @see AutowiredAnnotationBeanPostProcessor
+				 */
 				if (pp instanceof MergedBeanDefinitionPostProcessor) {
 					internalPostProcessors.add(pp);
 				}

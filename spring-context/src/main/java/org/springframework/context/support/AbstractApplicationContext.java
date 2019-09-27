@@ -36,6 +36,7 @@ import org.springframework.beans.CachedIntrospectionResults;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.AutowiredAnnotationBeanPostProcessor;
 import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -530,7 +531,10 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				// Invoke factory processors registered as beans in the context.
 				invokeBeanFactoryPostProcessors(beanFactory);
-
+				/**
+				 * 在这里注册的
+				 * @see AutowiredAnnotationBeanPostProcessor
+				 */
 				// Register bean processors that intercept bean creation.
 				registerBeanPostProcessors(beanFactory);
 
