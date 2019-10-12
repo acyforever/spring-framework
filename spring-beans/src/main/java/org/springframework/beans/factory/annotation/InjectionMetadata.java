@@ -220,19 +220,24 @@ public class InjectionMetadata {
 		 */
 		protected void inject(Object target, @Nullable String requestingBeanName, @Nullable PropertyValues pvs)
 				throws Throwable {
-
+			//如果是字段
 			if (this.isField) {
 				Field field = (Field) this.member;
 				ReflectionUtils.makeAccessible(field);
+				//反射调用注入
 				field.set(target, getResourceToInject(target, requestingBeanName));
 			}
+			//不是字段则是方法
 			else {
+				//检查是否是需要跳过的属性
 				if (checkPropertySkipping(pvs)) {
 					return;
 				}
 				try {
+					//获取注入的set方法
 					Method method = (Method) this.member;
 					ReflectionUtils.makeAccessible(method);
+					//反射调用注入
 					method.invoke(target, getResourceToInject(target, requestingBeanName));
 				}
 				catch (InvocationTargetException ex) {

@@ -499,17 +499,24 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 	 */
 	protected Object getResource(LookupElement element, @Nullable String requestingBeanName)
 			throws NoSuchBeanDefinitionException {
-
+		//mappedName是否不为空，这里的mappedName，如果@Resource标签中的lookup属性不是空这为lookup属性，如果lookup是空的
+		//则进一步获取@Resource中的mappedName属性
+		//lookupType相当于type属性
 		if (StringUtils.hasLength(element.mappedName)) {
+			//使用SimpleJndiBeanFactory获取Bean
 			return this.jndiFactory.getBean(element.mappedName, element.lookupType);
 		}
+		//是否使用JNDI的方式查找Bean，java5的方式，默认是false
 		if (this.alwaysUseJndiLookup) {
+			//使用SimpleJndiBeanFactory获取Bean
 			return this.jndiFactory.getBean(element.name, element.lookupType);
 		}
+		//如果resourceFactory不是null，resourceFactory一般不会是null，除非人为设置
 		if (this.resourceFactory == null) {
 			throw new NoSuchBeanDefinitionException(element.lookupType,
 					"No resource factory configured - specify the 'resourceFactory' property");
 		}
+		//如果没有指定name也没有指定type则从spring的BeanFactory中按照requestingBeanName获取Bean，也就是根据beanName获取
 		return autowireResource(this.resourceFactory, element, requestingBeanName);
 	}
 
@@ -619,6 +626,7 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 
 		public ResourceElement(Member member, AnnotatedElement ae, @Nullable PropertyDescriptor pd) {
 			super(member, pd);
+			//获取
 			Resource resource = ae.getAnnotation(Resource.class);
 			String resourceName = resource.name();
 			Class<?> resourceType = resource.type();
@@ -649,6 +657,7 @@ public class CommonAnnotationBeanPostProcessor extends InitDestroyAnnotationBean
 
 		@Override
 		protected Object getResourceToInject(Object target, @Nullable String requestingBeanName) {
+			//检查当前字段需要注入的对象是否延迟初始化，是的创建一个延迟初始化的代理源对象，如果不是则查找需要注入的对象
 			return (this.lazyLookup ? buildLazyResourceProxy(this, requestingBeanName) :
 					getResource(this, requestingBeanName));
 		}
