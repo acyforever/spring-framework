@@ -404,9 +404,13 @@ public class WebMvcConfigurationSupport implements ApplicationContextAware, Serv
 	@Bean
 	public ContentNegotiationManager mvcContentNegotiationManager() {
 		if (this.contentNegotiationManager == null) {
+			//创建视图配置，同时会设置试图协商工厂ContentNegotiationManagerFactoryBean的servletContext
 			ContentNegotiationConfigurer configurer = new ContentNegotiationConfigurer(this.servletContext);
+			//设置默认支持的媒体类型
 			configurer.mediaTypes(getDefaultMediaTypes());
+			//配置mvc的视图协商配置
 			configureContentNegotiation(configurer);
+			//创建视图协商管理类
 			this.contentNegotiationManager = configurer.buildContentNegotiationManager();
 		}
 		return this.contentNegotiationManager;

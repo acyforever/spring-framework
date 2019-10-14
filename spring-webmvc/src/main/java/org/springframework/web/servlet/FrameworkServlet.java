@@ -990,19 +990,22 @@ public abstract class FrameworkServlet extends HttpServletBean implements Applic
 
 		long startTime = System.currentTimeMillis();
 		Throwable failureCause = null;
-
+		//获取当前服务运行所在地区
 		LocaleContext previousLocaleContext = LocaleContextHolder.getLocaleContext();
+		//创建相关地区的对象的LocalContext
 		LocaleContext localeContext = buildLocaleContext(request);
-
+		//获取请求的属性，
 		RequestAttributes previousAttributes = RequestContextHolder.getRequestAttributes();
+		//创建requestAttributes，此时previousAttributes已经包含了request跟response，ServletRequestAttributes是RequestAttributes子类
 		ServletRequestAttributes requestAttributes = buildRequestAttributes(request, response, previousAttributes);
-
+		//从request获取WebAsyncManager,在filter阶段会创建WebAsyncManager，表示是不是异步相应的请求
 		WebAsyncManager asyncManager = WebAsyncUtils.getAsyncManager(request);
+		//将FrameworkServlet的内部类RequestBindingInterceptor设置到asyncManager中，用于在异步中初始化跟重新设置FrameworkServlet
 		asyncManager.registerCallableInterceptor(FrameworkServlet.class.getName(), new RequestBindingInterceptor());
-
+		//将localeContext跟requestAttributes设置到LocaleContextHolder跟RequestContextHolder中
 		initContextHolders(request, localeContext, requestAttributes);
-
 		try {
+			//进行业务处理
 			doService(request, response);
 		}
 		catch (ServletException | IOException ex) {
