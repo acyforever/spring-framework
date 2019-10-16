@@ -226,6 +226,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	/**
 	 * Derive further bean definitions from the configuration classes in the registry.
 	 */
+	//在refresh方法中最先被调用
 	@Override
 	public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
 		int registryId = System.identityHashCode(registry);
@@ -243,9 +244,9 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 	}
 
 	/**
-	 * Prepare the Configuration classes for servicing bean requests at runtime
-	 * by replacing them with CGLIB-enhanced subclasses.
+	 * Prepare the Configuration classes for servicing bean requests at runtime by replacing them with CGLIB-enhanced subclasses.
 	 */
+	//在refresh方法中第二被调用
 	@Override
 	public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 		int factoryId = System.identityHashCode(beanFactory);
@@ -322,6 +323,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
+			//第一个会调用shouldSkip的位置，这里是解析候选bean
 			parser.parse(candidates);
 			parser.validate();
 
@@ -334,6 +336,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
+			//第二个会调用shouldSkip的位置，这里是加载configurationClasse中在方法上加了@Bean或者@Configuration标签的bean
 			this.reader.loadBeanDefinitions(configClasses);
 			alreadyParsed.addAll(configClasses);
 

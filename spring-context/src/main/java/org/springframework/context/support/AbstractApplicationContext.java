@@ -315,6 +315,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	@Override
 	public ConfigurableEnvironment getEnvironment() {
+		//servlet应用则为StandardServletEnvironment，普通应用则为StandardEnvironment
 		if (this.environment == null) {
 			this.environment = createEnvironment();
 		}
