@@ -218,13 +218,17 @@ class ConfigurationClassParser {
 
 
 	protected void processConfigurationClass(ConfigurationClass configClass) throws IOException {
+		//检查当前解析的配置bean是否包含Conditional注解，如果不包含则不需要跳过
+		// 如果包含了则进行match方法得到匹配结果，如果是符合的并且设置的配置解析策略是解析阶段不需要调过
 		if (this.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
 			return;
 		}
-
+		//从缓存中尝试获取当前配置bean解析之后的ConfigurationClass对象
 		ConfigurationClass existingClass = this.configurationClasses.get(configClass);
 		if (existingClass != null) {
+			//检查当前这个配置bean是通过@Import标签引入的还是自动注入到另外一个配置类bean里面的
 			if (configClass.isImported()) {
+				//如果是通过@Import标签引入则将当前解析的配置bean加入到已经存在的解析过的bean的用来保存通过@Import标签引入的bean的集合中
 				if (existingClass.isImported()) {
 					existingClass.mergeImportedBy(configClass);
 				}
@@ -234,12 +238,14 @@ class ConfigurationClassParser {
 			else {
 				// Explicit bean definition found, probably replacing an import.
 				// Let's remove the old one and go with the new one.
+				//将当前解析的配置bean代替之前的
 				this.configurationClasses.remove(configClass);
 				this.knownSuperclasses.values().removeIf(configClass::equals);
 			}
 		}
 
 		// Recursively process the configuration class and its superclass hierarchy.
+		//递归获取原始的配置类信息然后封装为SourceClass
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass);
