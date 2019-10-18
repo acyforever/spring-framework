@@ -127,7 +127,7 @@ class ConfigurationClassBeanDefinitionReader {
 	 */
 	private void loadBeanDefinitionsForConfigurationClass(
 			ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
-
+		//检查是否是通过@import注解引入的，如果是的则循环解析到原始的贴有@import标签的bean，检查是否有@conditionl标签并检查是否需要跳过
 		if (trackedConditionEvaluator.shouldSkip(configClass)) {
 			String beanName = configClass.getBeanName();
 			if (StringUtils.hasLength(beanName) && this.registry.containsBeanDefinition(beanName)) {
@@ -452,22 +452,28 @@ class ConfigurationClassBeanDefinitionReader {
 		public boolean shouldSkip(ConfigurationClass configClass) {
 			Boolean skip = this.skipped.get(configClass);
 			if (skip == null) {
+				//当前的配置bean是不是通过@import注解引入的，不是的则不需要跳过
 				if (configClass.isImported()) {
 					boolean allSkipped = true;
+					//获取通过@import标签引入这个配置类的bean
 					for (ConfigurationClass importedBy : configClass.getImportedBy()) {
+						//检查引入配置类的bean的是否需要跳过
 						if (!shouldSkip(importedBy)) {
 							allSkipped = false;
 							break;
 						}
 					}
+					//如果所有的bean：1.当前的配置bean，2.引入当前配置bean 的bean 都是需要跳过的，则这个配置bean需要跳过
 					if (allSkipped) {
 						// The config classes that imported this one were all skipped, therefore we are skipped...
 						skip = true;
 					}
 				}
+				//检查对应的@condition是否需要跳过
 				if (skip == null) {
 					skip = conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN);
 				}
+				//将对应的配置bean记录起来是否需要跳过
 				this.skipped.put(configClass, skip);
 			}
 			return skip;
