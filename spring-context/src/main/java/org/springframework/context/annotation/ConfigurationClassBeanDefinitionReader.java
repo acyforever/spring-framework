@@ -129,18 +129,23 @@ class ConfigurationClassBeanDefinitionReader {
 			ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
 		//检查是否是通过@import注解引入的，如果是的则循环解析到原始的贴有@import标签的bean，检查是否有@conditionl标签并检查是否需要跳过
 		if (trackedConditionEvaluator.shouldSkip(configClass)) {
+			//获取当前配置bean的beanName
 			String beanName = configClass.getBeanName();
+			//如果当前beanName在BeanDefinitionRegistry中需要注册的bean的列表中则移除，因为这个bean需要被跳过
 			if (StringUtils.hasLength(beanName) && this.registry.containsBeanDefinition(beanName)) {
 				this.registry.removeBeanDefinition(beanName);
 			}
+			//移除在ImportRegistry中imports列表中的该beanName，因为这个bean需要被跳过
 			this.importRegistry.removeImportingClass(configClass.getMetadata().getClassName());
 			return;
 		}
-
+		//如果当前配置bean是通过@import注解进行注入的则进行注册
 		if (configClass.isImported()) {
 			registerBeanDefinitionForImportedConfigurationClass(configClass);
 		}
+		//获取当前配置类的BeanMethod,就是在方法上面贴了@Bean注解的方法
 		for (BeanMethod beanMethod : configClass.getBeanMethods()) {
+			//进行加载注入
 			loadBeanDefinitionsForBeanMethod(beanMethod);
 		}
 
@@ -176,11 +181,13 @@ class ConfigurationClassBeanDefinitionReader {
 	 */
 	@SuppressWarnings("deprecation")  // for RequiredAnnotationBeanPostProcessor.SKIP_REQUIRED_CHECK_ATTRIBUTE
 	private void loadBeanDefinitionsForBeanMethod(BeanMethod beanMethod) {
+		//获取改beanMethod中要的配置bean
 		ConfigurationClass configClass = beanMethod.getConfigurationClass();
 		MethodMetadata metadata = beanMethod.getMetadata();
 		String methodName = metadata.getMethodName();
 
 		// Do we need to mark the bean as skipped by its condition?
+		//检查是否需要跳过
 		if (this.conditionEvaluator.shouldSkip(metadata, ConfigurationPhase.REGISTER_BEAN)) {
 			configClass.skippedBeanMethods.add(methodName);
 			return;
