@@ -127,7 +127,7 @@ class ConfigurationClassBeanDefinitionReader {
 	 */
 	private void loadBeanDefinitionsForConfigurationClass(
 			ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
-		//检查是否是通过@import注解引入的，如果是的则循环解析到原始的贴有@import标签的bean，检查是否有@conditionl标签并检查是否需要跳过
+		//检查当前的bean是否是通过@import注解引入的，如果是的则循环解析到原始的贴有@import标签的bean，检查是否有@conditionl标签并检查是否需要跳过
 		if (trackedConditionEvaluator.shouldSkip(configClass)) {
 			//获取当前配置bean的beanName
 			String beanName = configClass.getBeanName();
@@ -148,8 +148,9 @@ class ConfigurationClassBeanDefinitionReader {
 			//进行加载注入
 			loadBeanDefinitionsForBeanMethod(beanMethod);
 		}
-
+		//加载configClass中的配置的resource
 		loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
+		//加载configClass中的配置的ImportBeanDefinitionRegistrar
 		loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
 	}
 
@@ -457,27 +458,30 @@ class ConfigurationClassBeanDefinitionReader {
 		private final Map<ConfigurationClass, Boolean> skipped = new HashMap<>();
 
 		public boolean shouldSkip(ConfigurationClass configClass) {
+			//检查当前的配置类是否需要调过，因为这里是前面的直接获取到的配置类，如果当前类需要跳过那么，内部的也必定需要跳过
+			//如果是null则说明这个类不是需要跳过的，但是也不代表是不需要跳过的，因为如果是被引入的则决定于最外面的一层bean是否需要跳过
 			Boolean skip = this.skipped.get(configClass);
 			if (skip == null) {
-				//当前的配置bean是不是通过@import注解引入的，不是的则不需要跳过
+				//当前的配置bean是不是通过@import注解引入的，不是的则不需要跳过，因为只有是在bean内部定义的bean才需要判断外面的一层bean是否需要跳过
 				if (configClass.isImported()) {
 					boolean allSkipped = true;
 					//获取通过@import标签引入这个配置类的bean
 					for (ConfigurationClass importedBy : configClass.getImportedBy()) {
-						//检查引入配置类的bean的是否需要跳过
+						//检查引入配置类的bean的是否需要跳过（这里一直会检查到最终的引入类，来决定是否需要全部跳过）
 						if (!shouldSkip(importedBy)) {
 							allSkipped = false;
 							break;
 						}
 					}
-					//如果所有的bean：1.当前的配置bean，2.引入当前配置bean 的bean 都是需要跳过的，则这个配置bean需要跳过
+					//如果所有的bean（1.当前的配置bean，2.引入当前配置bean） 的bean 都是需要跳过的，则这个配置bean需要跳过
 					if (allSkipped) {
 						// The config classes that imported this one were all skipped, therefore we are skipped...
 						skip = true;
 					}
 				}
-				//检查对应的@condition是否需要跳过
+				//能够到这一步的是最层的bean，例如A引入了B，B引入了C，那么A就是最外层的bean，检查A对应的@condition决定是否需要跳过，
 				if (skip == null) {
+					//这里就是对ConditionEvaluator方法的调用
 					skip = conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN);
 				}
 				//将对应的配置bean记录起来是否需要跳过

@@ -326,11 +326,12 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 		Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
 		Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
 		do {
-			//第一个会调用shouldSkip的位置，这里是解析候选的配置类bean。也可能是Component，ComponentScan，Import，ImportResource或者有Bean注解的bean
+			//第一个会调用shouldSkip的位置，这里是解析能够直接获取的候选配置bean。可能是Component，ComponentScan，Import，ImportResource或者有Bean注解的bean
 			parser.parse(candidates);
 			parser.validate();
-
+			//获取上面封装已经解析过的配置bean的ConfigurationClass集合
 			Set<ConfigurationClass> configClasses = new LinkedHashSet<>(parser.getConfigurationClasses());
+			//移除前面已经处理过的
 			configClasses.removeAll(alreadyParsed);
 
 			// Read the model and create bean definitions based on its content
@@ -339,7 +340,7 @@ public class ConfigurationClassPostProcessor implements BeanDefinitionRegistryPo
 						registry, this.sourceExtractor, this.resourceLoader, this.environment,
 						this.importBeanNameGenerator, parser.getImportRegistry());
 			}
-			//第二个会调用shouldSkip的位置，这里是加载configurationClasse中在方法上加了@Bean或者@Configuration标签的bean
+			//第二个会调用shouldSkip的位置，这里是加载configurationClasse中内部可能存在配置bean，比如方法上加了@Bean或者@Configuration标签的bean
 			this.reader.loadBeanDefinitions(configClasses);
 			alreadyParsed.addAll(configClasses);
 
