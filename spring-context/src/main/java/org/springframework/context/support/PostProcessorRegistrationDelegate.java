@@ -63,16 +63,18 @@ final class PostProcessorRegistrationDelegate {
 		 * @see org.springframework.context.support.ApplicationContextAwareProcessor.pos
 		 * @see org.springframework.context.support.ApplicationListenerDetector
 		 */
-
+		//如果当前的beanFactory是BeanDefinitionRegistry的，则需要将已经存在的beanDefinition进行注册
 		if (beanFactory instanceof BeanDefinitionRegistry) {
 			BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
 			List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
+			//保存注册bean的BeanDefinitionRegistryPostProcessor
 			List<BeanDefinitionRegistryPostProcessor> registryProcessors = new ArrayList<>();
-
+			//迭代beanFactoryPostProcessors如果是BeanDefinitionRegistryPostProcessor子类则加入到registryProcessors集合中
 			for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
 					BeanDefinitionRegistryPostProcessor registryProcessor =
 							(BeanDefinitionRegistryPostProcessor) postProcessor;
+					//处理beanFactory中的beanDefinitionNames
 					registryProcessor.postProcessBeanDefinitionRegistry(registry);
 					registryProcessors.add(registryProcessor);
 				}
@@ -88,16 +90,21 @@ final class PostProcessorRegistrationDelegate {
 			List<BeanDefinitionRegistryPostProcessor> currentRegistryProcessors = new ArrayList<>();
 
 			// First, invoke the BeanDefinitionRegistryPostProcessors that implement PriorityOrdered.
+			//先处理同时实现了PriorityOrdered接口的BeanDefinitionRegistryPostProcessor的实现类
 			String[] postProcessorNames =
 					beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
 			for (String ppName : postProcessorNames) {
+				//如果当前的BeanDefinitionRegistryPostProcessor类的实现类也实现了PriorityOrdered类，则加入当当前需要注册的BeanDefinitionRegistryPostProcessor集合
 				if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
 					currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
 					processedBeans.add(ppName);
 				}
 			}
+			//进行排序
 			sortPostProcessors(currentRegistryProcessors, beanFactory);
+			//加入到registryProcessors集合
 			registryProcessors.addAll(currentRegistryProcessors);
+			//调用实现了BeanDefinitionRegistryPostProcessor的postProcessBeanDefinitionRegistry方法
 			invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
 			currentRegistryProcessors.clear();
 

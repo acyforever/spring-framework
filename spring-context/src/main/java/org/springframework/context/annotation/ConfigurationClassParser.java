@@ -248,10 +248,11 @@ class ConfigurationClassParser {
 		//递归获取原始的配置类信息然后封装为SourceClass
 		SourceClass sourceClass = asSourceClass(configClass);
 		do {
+			//处理configClass
 			sourceClass = doProcessConfigurationClass(configClass, sourceClass);
 		}
 		while (sourceClass != null);
-
+		//保存到configurationClasses中
 		this.configurationClasses.put(configClass, configClass);
 	}
 
@@ -266,7 +267,7 @@ class ConfigurationClassParser {
 	@Nullable
 	protected final SourceClass doProcessConfigurationClass(ConfigurationClass configClass, SourceClass sourceClass)
 			throws IOException {
-
+		//
 		if (configClass.getMetadata().isAnnotated(Component.class.getName())) {
 			// Recursively process any member (nested) classes first
 			processMemberClasses(configClass, sourceClass);
@@ -285,22 +286,28 @@ class ConfigurationClassParser {
 			}
 		}
 
-		// Process any @ComponentScan annotations
+		// ComponentScans是对ComponentScan的包装，一个ComponentScans可以包含多个ComponentScan
 		Set<AnnotationAttributes> componentScans = AnnotationConfigUtils.attributesForRepeatable(
 				sourceClass.getMetadata(), ComponentScans.class, ComponentScan.class);
+		//如果解析注解后存在扫描相关的注解，并且贴有当前注解的bean不需要跳过注册（贴有@condition注解）
 		if (!componentScans.isEmpty() &&
 				!this.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
+			//对对应的注解信息进行循环处理
 			for (AnnotationAttributes componentScan : componentScans) {
-				// The config class is annotated with @ComponentScan -> perform the scan immediately
+				//ComponentScanAnnotationParser进行解析
 				Set<BeanDefinitionHolder> scannedBeanDefinitions =
 						this.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
 				// Check the set of scanned definitions for any further config classes and parse recursively if needed
+				//处理扫描到的并封装成BeanDefinitionHolder对象的bean
 				for (BeanDefinitionHolder holder : scannedBeanDefinitions) {
+					//检查时候是已经存在的bean
 					BeanDefinition bdCand = holder.getBeanDefinition().getOriginatingBeanDefinition();
 					if (bdCand == null) {
 						bdCand = holder.getBeanDefinition();
 					}
+					//检查是否可作为候选bean，
 					if (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, this.metadataReaderFactory)) {
+						//进行解析
 						parse(bdCand.getBeanClassName(), holder.getBeanName());
 					}
 				}
@@ -550,44 +557,47 @@ class ConfigurationClassParser {
 
 	private void processImports(ConfigurationClass configClass, SourceClass currentSourceClass,
 			Collection<SourceClass> importCandidates, boolean checkForCircularImports) {
-
+		//检查解析出来的Import注解集合是不是空的，空的则表示没有
 		if (importCandidates.isEmpty()) {
 			return;
 		}
-
+		//检查是否存在循环引入，通过deque的方式来检查
 		if (checkForCircularImports && isChainedImportOnStack(configClass)) {
 			this.problemReporter.error(new CircularImportProblem(configClass, this.importStack));
 		}
 		else {
+			//将当前bean放到importStack中，用于检查循环引入
 			this.importStack.push(configClass);
 			try {
 				for (SourceClass candidate : importCandidates) {
+					//import指定的Bean是ImportSelector类型
 					if (candidate.isAssignable(ImportSelector.class)) {
-						// Candidate class is an ImportSelector -> delegate to it to determine imports
+						//实例化指定的ImportSelector子类
 						Class<?> candidateClass = candidate.loadClass();
 						ImportSelector selector = ParserStrategyUtils.instantiateClass(candidateClass, ImportSelector.class,
 								this.environment, this.resourceLoader, this.registry);
+						//如果是ImportSelector的子类DeferredImportSelector的子类则按照DeferredImportSelectorHandler逻辑进行处理
 						if (selector instanceof DeferredImportSelector) {
 							this.deferredImportSelectorHandler.handle(configClass, (DeferredImportSelector) selector);
 						}
-						else {
+						else {//如果不是则获取指定的需要引入的class的ClassNames
 							String[] importClassNames = selector.selectImports(currentSourceClass.getMetadata());
+							//根据ClassNames获取并封装成一个SourceClass
 							Collection<SourceClass> importSourceClasses = asSourceClasses(importClassNames);
+							//继续调用processImports处理
 							processImports(configClass, currentSourceClass, importSourceClasses, false);
 						}
-					}
+					}//如果是ImportBeanDefinitionRegistrar的子类
 					else if (candidate.isAssignable(ImportBeanDefinitionRegistrar.class)) {
-						// Candidate class is an ImportBeanDefinitionRegistrar ->
-						// delegate to it to register additional bean definitions
+						// Candidate class is an ImportBeanDefinitionRegistrar -> delegate to it to register additional bean definitions
+						//如果对应的ImportBeanDefinitionRegistrar子类对象，并放到configClass，这个是用来注册额外的bean的
 						Class<?> candidateClass = candidate.loadClass();
 						ImportBeanDefinitionRegistrar registrar =
 								ParserStrategyUtils.instantiateClass(candidateClass, ImportBeanDefinitionRegistrar.class,
 										this.environment, this.resourceLoader, this.registry);
 						configClass.addImportBeanDefinitionRegistrar(registrar, currentSourceClass.getMetadata());
 					}
-					else {
-						// Candidate class not an ImportSelector or ImportBeanDefinitionRegistrar ->
-						// process it as an @Configuration class
+					else {//不是上面任何类的子类就可以进行处理了，将指定的需要引入的bean转化为ConfigurationClass，然后到processConfigurationClass方法中处理
 						this.importStack.registerImport(
 								currentSourceClass.getMetadata(), candidate.getMetadata().getClassName());
 						processConfigurationClass(candidate.asConfigClass(configClass));
@@ -758,6 +768,7 @@ class ConfigurationClassParser {
 					configClass, importSelector);
 			if (this.deferredImportSelectors == null) {
 				DeferredImportSelectorGroupingHandler handler = new DeferredImportSelectorGroupingHandler();
+				//将handler按照指定的Group进行保存
 				handler.register(holder);
 				handler.processGroupImports();
 			}
@@ -792,11 +803,14 @@ class ConfigurationClassParser {
 		private final Map<AnnotationMetadata, ConfigurationClass> configurationClasses = new HashMap<>();
 
 		public void register(DeferredImportSelectorHolder deferredImport) {
+			//获取指定的Group
 			Class<? extends Group> group = deferredImport.getImportSelector()
 					.getImportGroup();
+			//创建或者获取一个指定的Group
 			DeferredImportSelectorGrouping grouping = this.groupings.computeIfAbsent(
 					(group != null ? group : deferredImport),
 					key -> new DeferredImportSelectorGrouping(createGroup(group)));
+
 			grouping.add(deferredImport);
 			this.configurationClasses.put(deferredImport.getConfigurationClass().getMetadata(),
 					deferredImport.getConfigurationClass());

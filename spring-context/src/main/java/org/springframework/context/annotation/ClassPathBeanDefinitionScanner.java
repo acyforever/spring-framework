@@ -272,23 +272,35 @@ public class ClassPathBeanDefinitionScanner extends ClassPathScanningCandidateCo
 	protected Set<BeanDefinitionHolder> doScan(String... basePackages) {
 		Assert.notEmpty(basePackages, "At least one base package must be specified");
 		Set<BeanDefinitionHolder> beanDefinitions = new LinkedHashSet<>();
+		//跌倒需要扫描的包basePackage
 		for (String basePackage : basePackages) {
+			//寻找合适的候选bean，并封装成BeanDefinition
 			Set<BeanDefinition> candidates = findCandidateComponents(basePackage);
+			//处理寻找到的候选bean
 			for (BeanDefinition candidate : candidates) {
+				//调用ScopeMetadataResolver的resolveScopeMetadata为候选bean设置代理的方式ScopedProxyMode，默认是DEFAULT
+				//这里ScopeMetadataResolver跟ScopedProxyMode都可以在ComponentScan中设置，分别是scopeResolver跟scopedProxy
 				ScopeMetadata scopeMetadata = this.scopeMetadataResolver.resolveScopeMetadata(candidate);
 				candidate.setScope(scopeMetadata.getScopeName());
+				//使用BeanNameGenerator为候选bean生产bean的名称，默认使用的是AnnotationBeanNameGenerator。可以通过nameGenerator指定
 				String beanName = this.beanNameGenerator.generateBeanName(candidate, this.registry);
+				//如果bean是AbstractBeanDefinition类型的，则使用AbstractBeanDefinition的默认属性
 				if (candidate instanceof AbstractBeanDefinition) {
 					postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
 				}
+				//如果是AnnotatedBeanDefinition类型的则设置对应的默认属性
 				if (candidate instanceof AnnotatedBeanDefinition) {
 					AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
 				}
+				//检查是不是候选bean，就是检查是否已经存在了
 				if (checkCandidate(beanName, candidate)) {
+					//创建BeanDefinitionHolder对象
 					BeanDefinitionHolder definitionHolder = new BeanDefinitionHolder(candidate, beanName);
+					//将BeanDefinition的属性设置到BeanDefinitionHolder
 					definitionHolder =
 							AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, this.registry);
 					beanDefinitions.add(definitionHolder);
+					//注册bean
 					registerBeanDefinition(definitionHolder, this.registry);
 				}
 			}
