@@ -69,6 +69,7 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 	@Override
 	public String[] selectImports(AdviceMode adviceMode) {
 		switch (adviceMode) {
+			//默认的是PROXY类型的，返回需要支持这个类型需要注入的bean
 			case PROXY:
 				return getProxyImports();
 			case ASPECTJ:
@@ -84,9 +85,15 @@ public class CachingConfigurationSelector extends AdviceModeImportSelector<Enabl
 	 */
 	private String[] getProxyImports() {
 		List<String> result = new ArrayList<>(3);
+		//启动aop的注解
 		result.add(AutoProxyRegistrar.class.getName());
+		//代理配置类，这里会注入，
+		// BeanFactoryCacheOperationSourceAdvisor类
+		// CacheInterceptor类
 		result.add(ProxyCachingConfiguration.class.getName());
 		if (jsr107Present && jcacheImplPresent) {
+			//注入BeanFactoryJCacheOperationSourceAdvisor
+			//JCacheInterceptor类
 			result.add(PROXY_JCACHE_CONFIGURATION_CLASS);
 		}
 		return StringUtils.toStringArray(result);
