@@ -183,6 +183,9 @@ public @interface EnableCaching {
 	 * impact in practice unless one is explicitly expecting one type of proxy vs another,
 	 * e.g. in tests.
 	 */
+	/**
+	 * 指示是否创建基于子类(CGLIB)的代理，而不是标准的基于Java接口的代理。
+	 */
 	boolean proxyTargetClass() default false;
 
 	/**
@@ -194,6 +197,9 @@ public @interface EnableCaching {
 	 * since Spring's interceptor does not even kick in for such a runtime scenario.
 	 * For a more advanced mode of interception, consider switching this to
 	 * {@link AdviceMode#ASPECTJ}.
+	 */
+	/**
+	 * 代理模式
 	 */
 	AdviceMode mode() default AdviceMode.PROXY;
 

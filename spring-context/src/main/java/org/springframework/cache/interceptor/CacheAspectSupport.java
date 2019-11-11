@@ -428,23 +428,23 @@ public abstract class CacheAspectSupport extends AbstractCacheInvoker
 
 		// Collect puts from any @Cacheable miss, if no cached item is found
 		List<CachePutRequest> cachePutRequests = new LinkedList<>();
+		//如果@Cacheable注解收集不到chache(condition 通过，且key对应的数据不在缓存)
 		if (cacheHit == null) {
-			//将@Cacheable是空的key放到CachePutRequest中
+			//如果缓存不存在，但是存在@CachePut操作，则将缓存的值放到cachePutRequests中
 			collectPutRequests(contexts.get(CacheableOperation.class),
 					CacheOperationExpressionEvaluator.NO_RESULT, cachePutRequests);
 		}
 
 		Object cacheValue;
 		Object returnValue;
-		//如果CachePutRequest不是空则说明存在缓存，则直接从缓存获取。然后将缓存值包装未返回值
+		//如果CachePutRequest不是空则说明存在缓存，并且没有CachePut操作，则直接从缓存获取。然后将缓存值包装未返回值
 		if (cacheHit != null && !hasCachePut(contexts)) {
 			// If there are no put requests, just use the cache hit
 			cacheValue = cacheHit.get();
 			returnValue = wrapCacheValue(method, cacheValue);
 		}
 		else {
-			//如果没有缓存说明缓存不存在这时候调用方法获取方法的返回值，然后将返回值包装为缓存值
-			// Invoke the method if we don't have a cache hit
+			//todo 如果没有缓存或者说存在CachePut操作，这时候调用方法获取方法的返回值，然后将返回值包装为缓存值
 			returnValue = invokeOperation(invoker);
 			cacheValue = unwrapReturnValue(returnValue);
 		}
