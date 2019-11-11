@@ -99,9 +99,11 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 	 * create an AOP proxy with {@code this} as an argument.
 	 */
 	protected final synchronized AopProxy createAopProxy() {
+		//是否已经创建了Proxy，第一次创建之后就为true
 		if (!this.active) {
 			activate();
 		}
+		// 获取CGLB或者JDK代理
 		return getAopProxyFactory().createAopProxy(this);
 	}
 
@@ -111,6 +113,7 @@ public class ProxyCreatorSupport extends AdvisedSupport {
 	 */
 	private void activate() {
 		this.active = true;
+		//发布proxy创建事件
 		for (AdvisedSupportListener listener : this.listeners) {
 			listener.activated(this);
 		}

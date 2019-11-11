@@ -72,7 +72,7 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	@Nullable
 	protected Object[] getAdvicesAndAdvisorsForBean(
 			Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
-
+		//寻找合适的Advisor集合
 		List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName);
 		if (advisors.isEmpty()) {
 			return DO_NOT_PROXY;
@@ -91,10 +91,14 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 * @see #extendAdvisors
 	 */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
+		//寻找候选的Advisor，就是直接从容器中获取所有Advisor类型的类
 		List<Advisor> candidateAdvisors = findCandidateAdvisors();
+		//寻找合适的Advisor
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName);
+		//注册额外的Advisor，主要是如果eligibleAdvisors中有InstantiationModelAwarePointcutAdvisor，AbstractAspectJAdvice，PointcutAdvisor，AspectJExpressionPointcut类型的则额外加入一个ExposeInvocationInterceptor
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
+			//进行排序
 			eligibleAdvisors = sortAdvisors(eligibleAdvisors);
 		}
 		return eligibleAdvisors;
@@ -120,12 +124,14 @@ public abstract class AbstractAdvisorAutoProxyCreator extends AbstractAutoProxyC
 	 */
 	protected List<Advisor> findAdvisorsThatCanApply(
 			List<Advisor> candidateAdvisors, Class<?> beanClass, String beanName) {
-
+		//将当前初始化的bean记录到当前的线程的threadLocal中
 		ProxyCreationContext.setCurrentProxiedBeanName(beanName);
 		try {
+			//寻找合适的能够使用的Advisor
 			return AopUtils.findAdvisorsThatCanApply(candidateAdvisors, beanClass);
 		}
 		finally {
+			//将当前初始化的bean从threadLocal中去除
 			ProxyCreationContext.setCurrentProxiedBeanName(null);
 		}
 	}

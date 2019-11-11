@@ -441,26 +441,36 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 */
 	protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
 			@Nullable Object[] specificInterceptors, TargetSource targetSource) {
-
+		//将容器中的原始的bean的beanClass保存到一个已“originalTargetClass”结尾的属性当中
 		if (this.beanFactory instanceof ConfigurableListableBeanFactory) {
 			AutoProxyUtils.exposeTargetClass((ConfigurableListableBeanFactory) this.beanFactory, beanName, beanClass);
 		}
-
+		//创建一个ProxyFactory，复制当前ProxyConfig的属性
+		/**
+		 * 1.proxyTargetClass  是否直接代理目标类（CGLIB），而不是仅仅代理特定的接口，默认为false
+		 * 2.optimize  设置代理是否应该执行积极的优化,默认为false
+		 * ......
+		 */
 		ProxyFactory proxyFactory = new ProxyFactory();
 		proxyFactory.copyFrom(this);
-
+		//如果不需要直接代理目标类，
 		if (!proxyFactory.isProxyTargetClass()) {
+			//是否直接代理目标类（CGLIB），如果bean中有preserveTargetClass结尾的属性，那就是需要
 			if (shouldProxyTargetClass(beanClass, beanName)) {
 				proxyFactory.setProxyTargetClass(true);
 			}
 			else {
+				//将bean的接口类找出来，过滤出不是容器的回调接口（InitializingBean，DisposableBean，Closeable，AutoCloseable），不是内部语言的接口，然后加入到proxyFactory中。
 				evaluateProxyInterfaces(beanClass, proxyFactory);
 			}
 		}
-
+		//构建Advisor
 		Advisor[] advisors = buildAdvisors(beanName, specificInterceptors);
+		//加到proxyFactory
 		proxyFactory.addAdvisors(advisors);
+		//设置代理的目标类
 		proxyFactory.setTargetSource(targetSource);
+		//用户可以选择proxyFactory
 		customizeProxyFactory(proxyFactory);
 
 		proxyFactory.setFrozen(this.freezeProxy);
@@ -509,12 +519,15 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 	 */
 	protected Advisor[] buildAdvisors(@Nullable String beanName, @Nullable Object[] specificInterceptors) {
 		// Handle prototypes correctly...
+		//从容器中获取interceptorNames属性的拦截器
 		Advisor[] commonInterceptors = resolveInterceptorNames();
 
 		List<Object> allInterceptors = new ArrayList<>();
+		//Advisor集合不是null
 		if (specificInterceptors != null) {
 			allInterceptors.addAll(Arrays.asList(specificInterceptors));
 			if (commonInterceptors.length > 0) {
+				//是否先使用公共的拦截器先，是的就将commonInterceptors放到集合前面
 				if (this.applyCommonInterceptorsFirst) {
 					allInterceptors.addAll(0, Arrays.asList(commonInterceptors));
 				}
@@ -532,6 +545,7 @@ public abstract class AbstractAutoProxyCreator extends ProxyProcessorSupport
 
 		Advisor[] advisors = new Advisor[allInterceptors.size()];
 		for (int i = 0; i < allInterceptors.size(); i++) {
+			//对advice进行包装
 			advisors[i] = this.advisorAdapterRegistry.wrap(allInterceptors.get(i));
 		}
 		return advisors;

@@ -90,6 +90,7 @@ public abstract class AopConfigUtils {
 
 	@Nullable
 	public static BeanDefinition registerAspectJAnnotationAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
+		//注册AnnotationAwareAspectJAutoProxyCreator，
 		return registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry, null);
 	}
 
@@ -119,11 +120,14 @@ public abstract class AopConfigUtils {
 			Class<?> cls, BeanDefinitionRegistry registry, @Nullable Object source) {
 
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
-
+		//第一次进来的时候容器里面不包含这个bean
 		if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
 			BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+			//这里的cls为AnnotationAwareAspectJAutoProxyCreator，如果cls的className不是org.springframework.aop.config.internalAutoProxyCreator
 			if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+				//从容器中获取className为org.springframework.aop.config.internalAutoProxyCreator的bean，然后获取到对应的bean的优先级
 				int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
+				//获取cls的优先级
 				int requiredPriority = findPriorityForClass(cls);
 				if (currentPriority < requiredPriority) {
 					apcDefinition.setBeanClassName(cls.getName());
@@ -131,8 +135,10 @@ public abstract class AopConfigUtils {
 			}
 			return null;
 		}
-
+		//创建一个新的beanName为org.springframework.aop.config.internalAutoProxyCreator的bean
+		//bean的内部的beanClass类型 1. 使用注解来配置aop的时候是AnnotationAwareAspectJAutoProxyCreator。2. 使用xml形式的时候是AspectJAwareAdvisorAutoProxyCreator类型的
 		RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
+		//source为null
 		beanDefinition.setSource(source);
 		beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
 		beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
