@@ -44,7 +44,7 @@ public class ProxyCachingConfiguration extends AbstractCachingConfiguration {
 	public BeanFactoryCacheOperationSourceAdvisor cacheAdvisor() {
 		//缓存操作的Advisor，间接继承了AbstractPointcutAdvisor，能返回指定的切点
 		BeanFactoryCacheOperationSourceAdvisor advisor = new BeanFactoryCacheOperationSourceAdvisor();
-		//设置缓存操作源，也就是切点源
+		//设置缓存操作源，也就是切点源,AOP的pointcut属性
 		advisor.setCacheOperationSource(cacheOperationSource());
 		//设置advice，拦截器
 		advisor.setAdvice(cacheInterceptor());
@@ -57,13 +57,14 @@ public class ProxyCachingConfiguration extends AbstractCachingConfiguration {
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public CacheOperationSource cacheOperationSource() {
+		//返回注解操作缓存的操作源，AnnotationCacheOperationSource的父类AbstractFallbackCacheOperationSource里面包含了对注解相关的解析
 		return new AnnotationCacheOperationSource();
 	}
 
 	@Bean
 	@Role(BeanDefinition.ROLE_INFRASTRUCTURE)
 	public CacheInterceptor cacheInterceptor() {
-		//创建对应的拦截器，aop时候用到
+		//创建对应的拦截器，aop时候拦截的时候用到
 		CacheInterceptor interceptor = new CacheInterceptor();
 		//设置对应的配置
 		interceptor.configure(this.errorHandler, this.keyGenerator, this.cacheResolver, this.cacheManager);
@@ -71,5 +72,4 @@ public class ProxyCachingConfiguration extends AbstractCachingConfiguration {
 		interceptor.setCacheOperationSource(cacheOperationSource());
 		return interceptor;
 	}
-
 }
